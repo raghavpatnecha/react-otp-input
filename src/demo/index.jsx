@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { render } from 'react-dom';
 import OtpInput from '../../lib';
 import './styles.css';
-
 class Demo extends Component {
   constructor(props) {
     super(props);
@@ -12,35 +11,29 @@ class Demo extends Component {
       separator: '-',
       isDisabled: false,
       hasErrored: false,
-      isInputNum: false,
+      isInputNum: true,
     };
   }
-
   handleOtpChange = otp => {
+    console.log('handle otp change: ', otp)
     this.setState({ otp });
   };
-
   handleChange = e => {
     this.setState({ [e.target.name]: e.target.value });
   };
-
   clearOtp = () => {
     this.setState({ otp: '' });
   };
-
   handleCheck = e => {
     const { name } = e.target;
     this.setState(prevState => ({ [name]: !prevState[name] }));
   };
-
   handleSubmit = e => {
     e.preventDefault();
     alert(this.state.otp);
   };
-
   render() {
     const { otp, numInputs, separator, isDisabled, hasErrored, isInputNum } = this.state;
-
     return (
       <div className="container">
         <div className="side-bar">
@@ -177,5 +170,4 @@ class Demo extends Component {
     );
   }
 }
-
 render(<Demo />, document.getElementById('app'));
