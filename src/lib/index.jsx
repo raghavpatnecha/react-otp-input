@@ -1,12 +1,11 @@
 // @flow
 import React, { Component, PureComponent } from 'react';
-
 // keyCode constants
+window.globalOTPStore = [];
 const BACKSPACE = 8;
 const LEFT_ARROW = 37;
 const RIGHT_ARROW = 39;
 const DELETE = 46;
-
 type Props = {
   numInputs: number,
   onChange: Function,
@@ -22,21 +21,17 @@ type Props = {
   isInputNum?: boolean,
   value?: string,
 };
-
 type State = {
   activeInput: number,
   otp: string[],
 };
-
 // Doesn't really check if it's a style Object
 // Basic implemenetation to check if it's not a string
 // of classNames and is an Object
 // TODO: Better implementation
 const isStyleObject = obj => typeof obj === 'object';
-
 class SingleOtpInput extends PureComponent<*> {
   input: ?HTMLInputElement;
-
   // Focus on first render
   // Only when shouldAutoFocus is true
   componentDidMount() {
@@ -44,18 +39,15 @@ class SingleOtpInput extends PureComponent<*> {
       input,
       props: { focus, shouldAutoFocus },
     } = this;
-
     if (input && focus && shouldAutoFocus) {
       input.focus();
     }
   }
-
   componentDidUpdate(prevProps) {
     const {
       input,
       props: { focus },
     } = this;
-
     // Check if focusedInput changed
     // Prevent calling function if input already in focus
     if (prevProps.focus !== focus && (input && focus)) {
@@ -63,10 +55,8 @@ class SingleOtpInput extends PureComponent<*> {
       input.select();
     }
   }
-
   getClasses = (...classes) =>
     classes.filter(c => !isStyleObject(c) && c !== false).join(' ');
-
   render() {
     const {
       separator,
@@ -83,9 +73,7 @@ class SingleOtpInput extends PureComponent<*> {
       value,
       ...rest
     } = this.props;
-
     const numValueLimits = isInputNum ? { min: 0, max: 9 } : {};
-
     return (
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <input
@@ -106,10 +94,11 @@ class SingleOtpInput extends PureComponent<*> {
           {...numValueLimits}
           maxLength="1"
           ref={input => {
-            this.input = input;
+            // console.log('Ref Called: ', this.input, this);
+            return this.input = input;
           }}
           disabled={isDisabled}
-          value={value ? value : ''}
+          value={(value !== undefined) ? value.toString(): ''}
           {...rest}
         />
         {!isLastChild && separator}
@@ -117,87 +106,78 @@ class SingleOtpInput extends PureComponent<*> {
     );
   }
 }
-
 class OtpInput extends Component<Props, State> {
   static defaultProps = {
     numInputs: 4,
-    onChange: (otp: number): void => console.log(otp),
     isDisabled: false,
     shouldAutoFocus: false,
     value: '',
   };
-
   state = {
     activeInput: 0,
   };
-
-  getOtpValue = () =>
-    this.props.value ? this.props.value.toString().split('') : [];
-
+  getOtpValue = () => {
+    const result =  (this.props.value !== undefined && this.props.value !== null) ?  this.props.value.toString().split('') : ['0'];
+    console.log('Props Values: ', this.props.value,'Result: ', result);
+    return result;
+  };
   // Helper to return OTP from input
   handleOtpChange = (otp: string[]) => {
     const { onChange, isInputNum } = this.props;
     const otpValue = otp.join('');
+    console.log('otpvalue in handleOtpChange ', otpValue);
     onChange(isInputNum ? Number(otpValue) : otpValue);
   };
-
   // Focus on input by index
   focusInput = (input: number) => {
     const { numInputs } = this.props;
     const activeInput = Math.max(Math.min(numInputs - 1, input), 0);
-
+    console.log('Active Input is: ', activeInput, this.props);
     this.setState({ activeInput });
   };
-
   // Focus on next input
   focusNextInput = () => {
     const { activeInput } = this.state;
     this.focusInput(activeInput + 1);
   };
-
   // Focus on previous input
   focusPrevInput = () => {
     const { activeInput } = this.state;
     this.focusInput(activeInput - 1);
   };
-
   // Change OTP value at focused input
   changeCodeAtFocus = (value: string) => {
+    console.log('Value at focus: ',  value);
     const { activeInput } = this.state;
     const otp = this.getOtpValue();
+    console.log('OTP is: ', otp);
     otp[activeInput] = value[0];
-
+    window.globalOTPStore.push(value[0]);
     this.handleOtpChange(otp);
   };
-
   // Handle pasted OTP
   handleOnPaste = (e: Object) => {
     e.preventDefault();
     const { numInputs } = this.props;
     const { activeInput } = this.state;
     const otp = this.getOtpValue();
-
     // Get pastedData in an array of max size (num of inputs - current position)
     const pastedData = e.clipboardData
       .getData('text/plain')
       .slice(0, numInputs - activeInput)
       .split('');
-
     // Paste data from focused input onwards
     for (let pos = 0; pos < numInputs; ++pos) {
       if (pos >= activeInput && pastedData.length > 0) {
         otp[pos] = pastedData.shift();
       }
     }
-
     this.handleOtpChange(otp);
   };
-
   handleOnChange = (e: Object) => {
-    this.changeCodeAtFocus(e.target.value);
-    this.focusNextInput();
+   this.changeCodeAtFocus(e.target.value);
+   this.focusNextInput();
   };
-
   // Handle cases of backspace, delete, left arrow, right arrow
   handleOnKeyDown = (e: Object) => {
     if (e.keyCode === BACKSPACE || e.key === 'Backspace') {
@@ -215,14 +195,12 @@ class OtpInput extends Component<Props, State> {
       this.focusNextInput();
     }
   };
-
   checkLength = (e: Object) => {
     if (e.target.value.length > 1) {
       e.preventDefault();
       this.focusNextInput();
     }
   };
-
   renderInputs = () => {
     const { activeInput } = this.state;
     const {
@@ -239,13 +217,13 @@ class OtpInput extends Component<Props, State> {
     } = this.props;
     const otp = this.getOtpValue();
     const inputs = [];
-
+    console.log('otp is: ', otp);
     for (let i = 0; i < numInputs; i++) {
       inputs.push(
         <SingleOtpInput
           key={i}
           focus={activeInput === i}
-          value={otp && otp[i]}
+          value={(otp && otp[i] !== undefined) ? otp[i] : ''}
           onChange={this.handleOnChange}
           onKeyDown={this.handleOnKeyDown}
           onInput={this.checkLength}
@@ -268,13 +246,10 @@ class OtpInput extends Component<Props, State> {
         />
       );
     }
-
     return inputs;
   };
-
   render() {
     const { containerStyle } = this.props;
-
     return (
       <div
         style={Object.assign(
@@ -288,5 +263,4 @@ class OtpInput extends Component<Props, State> {
     );
   }
 }
-
 export default OtpInput;
